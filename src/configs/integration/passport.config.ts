@@ -3,6 +3,7 @@ import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-g
 import { Strategy as GitHubStrategy, Profile as GitHubProfile } from "passport-github2";
 import { VerifyCallback } from "passport-oauth2";
 import User, { IUserDocument } from "../../models/core/user.model";
+import { OAuthProvider } from "../../types/core/user.types";
 import { logger } from "../../utils/logger.util";
 import { console_util } from "../../utils/console.util";
 
@@ -10,7 +11,7 @@ const GOOGLE_CALLBACK_URL = `${process.env.API_BASE_URL}/api/auth/google/callbac
 const GITHUB_CALLBACK_URL = `${process.env.API_BASE_URL}/api/auth/github/callback`;
 
 async function handleOAuthProfile(
-    provider: "google" | "github",
+    provider: OAuthProvider,
     providerId: string,
     email: string,
     name: string,
@@ -18,19 +19,20 @@ async function handleOAuthProfile(
     accessToken: string,
     refreshToken: string | undefined,
     done: VerifyCallback
-) {
+): Promise<void> {
     try {
-        let user: IUserDocument | null = await (User as any).findByOAuth(provider, providerId);
-        let isNewUser = false;
+        let user: IUserDocument | null = await User.findByOAuth(provider, providerId);
 
         if (user) {
             const profileIndex = user.oauthProfiles.findIndex(
-                (p: { provider: string; providerId: string; }) => p.provider === provider && p.providerId === providerId
+                (p) => p.provider === provider && p.providerId === providerId
             );
 
             if (profileIndex !== -1) {
                 user.oauthProfiles[profileIndex].accessToken = accessToken;
-                if (refreshToken) user.oauthProfiles[profileIndex].refreshToken = refreshToken;
+                if (refreshToken) {
+                    user.oauthProfiles[profileIndex].refreshToken = refreshToken;
+                }
             }
 
             user.lastLoginAt = new Date();
@@ -49,7 +51,11 @@ async function handleOAuthProfile(
             user.lastLoginAt = new Date();
             await user.save();
 
-            logger.info("OAuthPassport", "Existing email user linked OAuth profile", { provider, userId: user._id, email });
+            logger.info("OAuthPassport", "Existing email user linked OAuth profile", {
+                provider,
+                userId: user._id,
+                email,
+            });
             console_util.success("OAuthPassport", "OAuth profile linked to existing account", { provider, email });
 
             return done(null, { ...user.toObject(), isNewUser: false });
@@ -62,12 +68,11 @@ async function handleOAuthProfile(
             oauthProfiles: [{ provider, providerId, accessToken, refreshToken }],
             lastLoginAt: new Date(),
         });
-        isNewUser = true;
 
         logger.info("OAuthPassport", "New user created via OAuth", { provider, userId: newUser._id, email });
         console_util.success("OAuthPassport", "New user registered via OAuth", { provider, email });
 
-        return done(null, { ...newUser.toObject(), isNewUser });
+        return done(null, { ...newUser.toObject(), isNewUser: true });
     } catch (error) {
         logger.error("OAuthPassport", "OAuth profile handling failed", { provider, email, error });
         console_util.error("OAuthPassport", "OAuth profile handling failed", { provider, error });

@@ -32,7 +32,7 @@ export const updateMe = catchAsync(async (req: Request, res: Response) => {
     const parsed = UpdateUserSchema.safeParse(req.body);
 
     if (!parsed.success) {
-        throw new ValidationError(parsed.error.errors[0].message);
+        throw new ValidationError(parsed.error.issues[0].message);
     }
 
     const user = await User.findByIdAndUpdate(
@@ -75,7 +75,7 @@ export const deleteMe = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const getUserById = catchAsync(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     if (!Types.ObjectId.isValid(id)) {
         throw new ValidationError("Invalid user ID format");
@@ -115,7 +115,7 @@ export const getLinkedProviders = catchAsync(async (req: Request, res: Response)
 
 export const unlinkProvider = catchAsync(async (req: Request, res: Response) => {
     const currentUser = req.user as OAuthCallbackUser;
-    const { provider } = req.params;
+    const provider = req.params.provider as string;
 
     if (!["google", "github"].includes(provider)) {
         throw new ValidationError("Invalid provider. Must be google or github");

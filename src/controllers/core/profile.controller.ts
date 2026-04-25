@@ -52,7 +52,7 @@ export const createProfile = catchAsync(async (req: Request, res: Response) => {
 
     const parsed = CreateProfileSchema.safeParse(req.body);
     if (!parsed.success) {
-        throw new ValidationError(parsed.error.errors[0].message);
+        throw new ValidationError(parsed.error.issues[0].message);
     }
 
     const usernameExists = await Profile.findOne({ username: parsed.data.username });
@@ -79,7 +79,7 @@ export const updateProfile = catchAsync(async (req: Request, res: Response) => {
 
     const parsed = UpdateProfileSchema.safeParse(req.body);
     if (!parsed.success) {
-        throw new ValidationError(parsed.error.errors[0].message);
+        throw new ValidationError(parsed.error.issues[0].message);
     }
 
     if (parsed.data.username) {

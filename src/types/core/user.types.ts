@@ -27,11 +27,12 @@ export interface IUserMethods {
     findByOAuth(provider: OAuthProvider, providerId: string): Promise<IUserDocument | null>;
 }
 
-export interface OAuthCallbackUser extends Omit<IUser, "createdAt" | "updatedAt"> {
+export interface OAuthCallbackUser {
     _id: Types.ObjectId;
+    name: string;
+    email: string;
+    avatar?: string;
+    oauthProfiles: IOAuthProfile[];
+    lastLoginAt: Date;
     isNewUser: boolean;
-}
-
-export interface AuthenticatedRequest extends Express.Request {
-    user?: OAuthCallbackUser;
 }
