@@ -1,0 +1,53 @@
+PROPRIETARY SOFTWARE LICENSE
+
+Copyright (c) 2026 Feel. All Rights Reserved.
+
+NOTICE: This software and its source code are the exclusive proprietary
+property of Feel. This repository and all of its contents are strictly
+confidential.
+
+RESTRICTIONS:
+
+1. No part of this software, including but not limited to the source code,
+   documentation, assets, architecture, algorithms, and data structures,
+   may be copied, reproduced, modified, distributed, transmitted,
+   transcribed, stored in a retrieval system, or translated into any
+   language or computer language, in any form or by any means, without
+   the prior explicit written permission of Feel.
+
+2. This software may not be used, in whole or in part, for any purpose
+   other than the intended internal use by authorized personnel of Feel.
+
+3. You may not reverse engineer, decompile, disassemble, or attempt to
+   derive the source code of this software.
+
+4. You may not sublicense, sell, rent, lease, transfer, assign, or
+   otherwise dispose of this software.
+
+5. You may not use this software to create derivative works of any kind.
+
+6. Unauthorized use, reproduction, or distribution of this software,
+   or any portion of it, may result in severe civil and criminal penalties,
+   and will be prosecuted to the maximum extent possible under the law.
+
+CONFIDENTIALITY:
+
+This repository is private and confidential. Access is strictly limited
+to authorized contributors explicitly approved by Feel. Any unauthorized
+access, cloning, forking, or use of this repository is strictly prohibited.
+
+NO WARRANTY:
+
+This software is provided "as is" without warranty of any kind, express
+or implied. Feel shall not be liable for any damages arising out of or
+in connection with the use or inability to use this software.
+
+GOVERNING LAW:
+
+This license shall be governed by and construed in accordance with
+applicable law. Any disputes arising under this license shall be subject
+to the exclusive jurisdiction of the courts of competent jurisdiction.
+
+For licensing inquiries, contact: legal@feel.app
+
+ALL RIGHTS RESERVED.
