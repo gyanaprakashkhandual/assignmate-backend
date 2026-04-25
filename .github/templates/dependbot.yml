@@ -1,0 +1,49 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 10
+    versioning-strategy: lockfile-only
+    groups:
+      typescript-ecosystem:
+        patterns:
+          - typescript
+          - ts-*
+          - "@types/*"
+      express-ecosystem:
+        patterns:
+          - express
+          - "@types/express"
+      mongoose:
+        patterns:
+          - mongoose
+      testing:
+        patterns:
+          - jest
+          - supertest
+          - "@types/jest"
+          - "@types/supertest"
+          - ts-jest
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
