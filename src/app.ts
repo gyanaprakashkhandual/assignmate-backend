@@ -8,6 +8,7 @@ import { logger } from "./utils/logger.util";
 import { console_util } from "./utils/console.util";
 import { globalErrorHandler } from "./utils/error.util";
 
+
 /* Core Imports (Router) */
 import authRouter from "./routes/core/user.route";
 import profileRouter from "./routes/core/profile.route";
@@ -15,6 +16,8 @@ import profileRouter from "./routes/core/profile.route";
 const app: Application = express();
 
 app.use(helmet());
+// app.ts
+app.use(cookieParser());
 
 const ALLOWED_ORIGINS = [
     process.env.CLIENT_URL,
