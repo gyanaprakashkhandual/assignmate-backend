@@ -124,7 +124,7 @@ class RenderingService {
 
         ctx.save();
         ctx.translate(xOffset, yOffset);
-        ctx.skewX((slant * Math.PI) / 180);
+        ctx.transform(1, 0, Math.tan((slant * Math.PI) / 180), 1, 0, 0);
         ctx.globalAlpha = 0.7 + Math.random() * 0.3;
 
         ctx.fillText(char, 0, 0);
@@ -148,14 +148,14 @@ class RenderingService {
       const ctx = canvas.getContext("2d");
 
       this.createPaperBackground(
-        ctx,
+        ctx as unknown as CanvasRenderingContext2D,
         request.width,
         request.height,
         request.paperStyle
       );
 
       this.renderHandwritingText(
-        ctx,
+        ctx as unknown as CanvasRenderingContext2D,
         request.text,
         request.customizations.marginLeft,
         request.customizations.marginTop,
