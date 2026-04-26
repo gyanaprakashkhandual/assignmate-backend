@@ -21,6 +21,7 @@ export interface IUser {
 
 export interface IUserDocument extends IUser, Document {
     _id: Types.ObjectId;
+    id: string;
 }
 
 export interface IUserMethods {
@@ -29,6 +30,7 @@ export interface IUserMethods {
 
 export interface OAuthCallbackUser {
     _id: Types.ObjectId;
+    id: string;
     name: string;
     email: string;
     avatar?: string;

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { Model, Schema } from "mongoose";
+import { Types } from "mongoose";
 import {
     IChatSession,
     IChatMessage,
@@ -21,7 +22,6 @@ import {
     NotFoundError,
     UnauthorizedError,
 } from "../../utils/error.util";
-import { logger } from "../../utils/logger.util";
 import { console_util } from "../../utils/console.util";
 import { catchAsync } from "../../utils/error.util";
 
@@ -243,16 +243,16 @@ export class ChatController {
     );
 
     /*** GET /api/chat/:sessionId - Get single session */
-    getSession = catchAsync(
-        async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
-            const userId = req.user?.id as string;
-            const session = await this.chatService.getChatSession(
-                new Schema.Types.ObjectId(req.params.sessionId)
-            );
+   getSession = catchAsync(
+    async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
+        const userId = req.user?.id as string;
+        const session = await this.chatService.getChatSession(
+            new Types.ObjectId(req.params.sessionId as string)
+        );
 
-            if (session.user.toString() !== userId) {
-                throw new UnauthorizedError("Not authorized");
-            }
+        if (session.user.toString() !== userId) {
+            throw new UnauthorizedError("Not authorized");
+        }
 
             const messageCount = (session.messages as any[]).length;
             const response: IChatSessionResponse = {
@@ -319,10 +319,9 @@ export class ChatController {
             const updates = UpdateChatSessionSchema.parse(req.body);
             const userId = req.user?.id as string;
 
-            const session = await this.chatService.getChatSession(
-                new Schema.Types.ObjectId(req.params.sessionId)
-            );
-
+           const session = await this.chatService.getChatSession(
+    new Types.ObjectId(req.params.sessionId as string)
+);
             if (session.user.toString() !== userId) {
                 throw new UnauthorizedError("Not authorized");
             }
