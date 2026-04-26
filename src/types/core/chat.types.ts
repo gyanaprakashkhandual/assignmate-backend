@@ -1,18 +1,14 @@
-import { Document, Schema } from "mongoose";
+import { Document, Types } from "mongoose";
 
-/*** Chat Session Document */
 export interface IChatSession extends Document {
-    user: Schema.Types.ObjectId;
+    _id: Types.ObjectId;
+    user: Types.ObjectId;
     title: string;
-    messages: Schema.Types.ObjectId[];
+    messages: Types.ObjectId[];
     pdfUrl?: string;
     pdfPublicId?: string;
     pdfGeneratedAt?: Date;
-    handwritingProfileSnapshot: {
-        imageUrl: string;
-        publicId: string;
-        extractedStyles: Record<string, unknown>;
-    };
+    handwritingProfileSnapshot: IHandwritingSnapshot;
     status: "active" | "archived" | "deleted";
     isStarred: boolean;
     createdAt: Date;
@@ -20,9 +16,9 @@ export interface IChatSession extends Document {
     expiresAt?: Date;
 }
 
-/*** Individual Chat Message */
 export interface IChatMessage extends Document {
-    chatSession: Schema.Types.ObjectId;
+    _id: Types.ObjectId;
+    chatSession: Types.ObjectId;
     type: "user_question" | "ai_answer";
     content: string;
     order: number;
@@ -42,10 +38,10 @@ export interface IChatMessage extends Document {
     updatedAt: Date;
 }
 
-/*** PDF Generation Record */
 export interface IPdfGenerationRecord extends Document {
-    chatSession: Schema.Types.ObjectId;
-    user: Schema.Types.ObjectId;
+    _id: Types.ObjectId;
+    chatSession: Types.ObjectId;
+    user: Types.ObjectId;
     pdfUrl: string;
     pdfPublicId: string;
     messageCount: number;
@@ -61,9 +57,8 @@ export interface IPdfGenerationRecord extends Document {
     };
 }
 
-/*** Chat Search Filter Options */
 export interface IChatSearchFilters {
-    userId?: Schema.Types.ObjectId;
+    userId?: Types.ObjectId;
     status?: "active" | "archived" | "deleted";
     isStarred?: boolean;
     createdAfter?: Date;
@@ -72,7 +67,6 @@ export interface IChatSearchFilters {
     searchQuery?: string;
 }
 
-/*** Chat Statistics */
 export interface IChatStats {
     totalSessions: number;
     activeSessions: number;
@@ -82,7 +76,6 @@ export interface IChatStats {
     totalPdfsGenerated: number;
 }
 
-/*** Handwriting Profile Snapshot (at time of chat) */
 export interface IHandwritingSnapshot {
     imageUrl: string;
     publicId: string;
@@ -98,7 +91,6 @@ export interface IHandwritingSnapshot {
     };
 }
 
-/*** Canvas Rendering Request */
 export interface ICanvasRenderRequest {
     text: string;
     handwritingProfile: IHandwritingSnapshot;
@@ -114,7 +106,6 @@ export interface ICanvasRenderRequest {
     height: number;
 }
 
-/*** PDF Export Request */
 export interface IPdfExportRequest {
     chatSessionId: string;
     paperStyle: "lined" | "plain" | "college_ruled";
@@ -127,7 +118,6 @@ export interface IPdfExportRequest {
     };
 }
 
-/*** API Response Types */
 export interface IChatMessageResponse {
     id: string;
     chatSessionId: string;

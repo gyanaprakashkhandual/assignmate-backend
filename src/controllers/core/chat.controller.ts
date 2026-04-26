@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from "express";
-import { Model } from "mongoose";
+import { Model, Schema } from "mongoose";
 import { Types } from "mongoose";
 import {
     IChatSession,
     IChatMessage,
     IChatSessionResponse,
     IChatMessageResponse,
+    IHandwritingSnapshot,
 } from "../../types/core/chat.types";
 import {
     CreateChatSessionSchema,
@@ -51,7 +52,7 @@ export class ChatController {
 
             /*** Get user's handwriting profile */
             const profile = await this.profileService.getProfile(
-                new Types.ObjectId(userId)
+                new Types.ObjectId(userId) as unknown as Schema.Types.ObjectId
             );
             if (!profile?.handwritingImage) {
                 throw new ValidationError("Handwriting profile not found. Please upload first.");
@@ -185,10 +186,27 @@ export class ChatController {
             }
 
             /*** Render preview */
+            const snapshot = session.handwritingProfileSnapshot;
+
+            const handwritingSnapshot: IHandwritingSnapshot = {
+                imageUrl: snapshot.imageUrl,
+                publicId: snapshot.publicId,
+                extractedStyles: {
+                    slant: (snapshot.extractedStyles.slant as number) ?? 0,
+                    spacing: (snapshot.extractedStyles.spacing as number) ?? 0,
+                    strokeWeight: (snapshot.extractedStyles.strokeWeight as number) ?? 0,
+                    lineIrregularity: (snapshot.extractedStyles.lineIrregularity as number) ?? 0,
+                    inkDensity: (snapshot.extractedStyles.inkDensity as number) ?? 0,
+                    fontFamily: snapshot.extractedStyles.fontFamily as string | undefined,
+                    fontSize: snapshot.extractedStyles.fontSize as number | undefined,
+                    extraData: snapshot.extractedStyles.extraData as Record<string, unknown> | undefined,
+                },
+            };
+
             const canvasDataUrl = await this.chatService.renderMessagePreview(
                 new Types.ObjectId(messageId),
                 message.content,
-                session.handwritingProfileSnapshot,
+                handwritingSnapshot,
                 customizations,
                 paperStyle
             );

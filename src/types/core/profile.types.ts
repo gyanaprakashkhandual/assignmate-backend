@@ -20,7 +20,7 @@ export interface IProfile {
 }
 
 export interface IProfileDocument extends Document {
-    user: Schema.Types.ObjectId;
+    user: Types.ObjectId;
     username: string;
     nickname?: string;
     designation?: string;
