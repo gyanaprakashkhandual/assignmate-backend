@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { Model, Schema } from "mongoose";
+import { Model } from "mongoose";
 import { Types } from "mongoose";
 import {
     IChatSession,
@@ -51,7 +51,7 @@ export class ChatController {
 
             /*** Get user's handwriting profile */
             const profile = await this.profileService.getProfile(
-                new Schema.Types.ObjectId(userId)
+                new Types.ObjectId(userId)
             );
             if (!profile?.handwritingImage) {
                 throw new ValidationError("Handwriting profile not found. Please upload first.");
@@ -71,7 +71,7 @@ export class ChatController {
             };
 
             const session = await this.chatService.createChatSession(
-                new Schema.Types.ObjectId(userId),
+                new Types.ObjectId(userId),
                 title,
                 handwritingSnapshot
             );
@@ -102,7 +102,7 @@ export class ChatController {
     sendMessage = catchAsync(
         async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
             const { chatSessionId, userQuestion } = GenerateAiResponseSchema.parse({
-                chatSessionId: req.params.sessionId,
+                chatSessionId: req.params.sessionId as string,
                 userQuestion: req.body.question,
             });
 
@@ -110,7 +110,7 @@ export class ChatController {
 
             /*** Verify session belongs to user */
             const session = await this.chatService.getChatSession(
-                new Schema.Types.ObjectId(chatSessionId)
+                new Types.ObjectId(chatSessionId)
             );
 
             if (session.user.toString() !== userId) {
@@ -119,13 +119,13 @@ export class ChatController {
 
             /*** Add user question */
             const userMsg = await this.chatService.addUserQuestion(
-                new Schema.Types.ObjectId(chatSessionId),
+                new Types.ObjectId(chatSessionId),
                 userQuestion
             );
 
             /*** Generate AI response */
             const aiMsg = await this.chatService.generateAiResponse(
-                new Schema.Types.ObjectId(chatSessionId),
+                new Types.ObjectId(chatSessionId),
                 userQuestion
             );
 
@@ -166,10 +166,10 @@ export class ChatController {
             const { customizations, paperStyle } = CanvasRenderSchema.parse(
                 req.body
             );
-            const messageId = req.params.messageId;
+            const messageId = req.params.messageId as string;
 
             const session = await this.chatService.getChatSession(
-                new Schema.Types.ObjectId(req.body.chatSessionId)
+                new Types.ObjectId(req.body.chatSessionId as string)
             );
 
             const userId = req.user?.id as string;
@@ -186,7 +186,7 @@ export class ChatController {
 
             /*** Render preview */
             const canvasDataUrl = await this.chatService.renderMessagePreview(
-                new Schema.Types.ObjectId(messageId),
+                new Types.ObjectId(messageId),
                 message.content,
                 session.handwritingProfileSnapshot,
                 customizations,
@@ -208,13 +208,13 @@ export class ChatController {
         async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
             const { chatSessionId, customizations, paperStyle } =
                 PdfExportSchema.parse({
-                    chatSessionId: req.params.sessionId,
+                    chatSessionId: req.params.sessionId as string,
                     ...req.body,
                 });
 
             const userId = req.user?.id as string;
             const session = await this.chatService.getChatSession(
-                new Schema.Types.ObjectId(chatSessionId)
+                new Types.ObjectId(chatSessionId)
             );
 
             if (session.user.toString() !== userId) {
@@ -224,8 +224,8 @@ export class ChatController {
             /*** Generate PDF */
             const { pdfUrl, pdfPublicId, fileSize } =
                 await this.chatService.generateChatPdf(
-                    new Schema.Types.ObjectId(chatSessionId),
-                    new Schema.Types.ObjectId(userId),
+                    new Types.ObjectId(chatSessionId),
+                    new Types.ObjectId(userId),
                     customizations,
                     paperStyle
                 );
@@ -243,16 +243,16 @@ export class ChatController {
     );
 
     /*** GET /api/chat/:sessionId - Get single session */
-   getSession = catchAsync(
-    async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
-        const userId = req.user?.id as string;
-        const session = await this.chatService.getChatSession(
-            new Types.ObjectId(req.params.sessionId as string)
-        );
+    getSession = catchAsync(
+        async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
+            const userId = req.user?.id as string;
+            const session = await this.chatService.getChatSession(
+                new Types.ObjectId(req.params.sessionId as string)
+            );
 
-        if (session.user.toString() !== userId) {
-            throw new UnauthorizedError("Not authorized");
-        }
+            if (session.user.toString() !== userId) {
+                throw new UnauthorizedError("Not authorized");
+            }
 
             const messageCount = (session.messages as any[]).length;
             const response: IChatSessionResponse = {
@@ -280,7 +280,7 @@ export class ChatController {
             const userId = req.user?.id as string;
 
             const result = await this.chatService.searchSessions(
-                new Schema.Types.ObjectId(userId),
+                new Types.ObjectId(userId),
                 {
                     ...filters,
                     searchQuery: filters.query,
@@ -319,15 +319,15 @@ export class ChatController {
             const updates = UpdateChatSessionSchema.parse(req.body);
             const userId = req.user?.id as string;
 
-           const session = await this.chatService.getChatSession(
-    new Types.ObjectId(req.params.sessionId as string)
-);
+            const session = await this.chatService.getChatSession(
+                new Types.ObjectId(req.params.sessionId as string)
+            );
             if (session.user.toString() !== userId) {
                 throw new UnauthorizedError("Not authorized");
             }
 
             const updated = await this.chatService.updateSession(
-                new Schema.Types.ObjectId(req.params.sessionId),
+                new Types.ObjectId(req.params.sessionId as string),
                 updates
             );
 
@@ -356,7 +356,7 @@ export class ChatController {
             const hardDelete = req.query.hard === "true";
 
             const session = await this.chatService.getChatSession(
-                new Schema.Types.ObjectId(req.params.sessionId)
+                new Types.ObjectId(req.params.sessionId as string)
             );
 
             if (session.user.toString() !== userId) {
@@ -364,7 +364,7 @@ export class ChatController {
             }
 
             await this.chatService.deleteSession(
-                new Schema.Types.ObjectId(req.params.sessionId),
+                new Types.ObjectId(req.params.sessionId as string),
                 hardDelete
             );
 
@@ -381,7 +381,7 @@ export class ChatController {
     getStats = catchAsync(
         async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
             const userId = req.user?.id as string;
-            const stats = await this.chatService.getStats(new Schema.Types.ObjectId(userId));
+            const stats = await this.chatService.getStats(new Types.ObjectId(userId));
 
             res.status(200).json({
                 success: true,

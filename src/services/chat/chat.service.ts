@@ -1,4 +1,4 @@
-import mongoose, { Model, Schema } from "mongoose";
+import mongoose, { Model, Types } from "mongoose";
 import {
     IChatSession,
     IChatMessage,
@@ -11,7 +11,7 @@ import { console_util } from "../../utils/console.util";
 import { openRouterService } from "./openrouter.service";
 import { renderingService } from "./rendering.service";
 import { cloudinaryService } from "./cloudinary.service";
-import { ValidationError, NotFoundError } from "../../utils/error.util";
+import { NotFoundError } from "../../utils/error.util";
 
 /*** Chat Service */
 class ChatService {
@@ -22,7 +22,7 @@ class ChatService {
 
     /*** Create new chat session */
     async createChatSession(
-        userId: Schema.Types.ObjectId,
+        userId: Types.ObjectId,
         title: string,
         handwritingProfile: IHandwritingSnapshot
     ): Promise<IChatSession> {
@@ -60,7 +60,7 @@ class ChatService {
 
     /*** Add user question to chat */
     async addUserQuestion(
-        chatSessionId: Schema.Types.ObjectId,
+        chatSessionId: Types.ObjectId,
         question: string
     ): Promise<IChatMessage> {
         try {
@@ -83,7 +83,7 @@ class ChatService {
                 },
             });
 
-            session.messages.push(message._id);
+            session.messages.push(message._id as Types.ObjectId);
             await session.save();
 
             logger.info("ChatService", "User question added", {
@@ -100,7 +100,7 @@ class ChatService {
 
     /*** Generate AI response */
     async generateAiResponse(
-        chatSessionId: Schema.Types.ObjectId,
+        chatSessionId: Types.ObjectId,
         userQuestion: string
     ): Promise<IChatMessage> {
         try {
@@ -114,7 +114,7 @@ class ChatService {
             /*** Build chat history */
             const chatHistory = (session.messages as unknown as IChatMessage[]).map(
                 (msg) => ({
-                    role: msg.type === "user_question" ? "user" : "assistant",
+                    role: (msg.type === "user_question" ? "user" : "assistant") as "user" | "assistant",
                     content: msg.content,
                 })
             );
@@ -171,7 +171,7 @@ class ChatService {
 
     /*** Render message to handwriting preview */
     async renderMessagePreview(
-        messageId: Schema.Types.ObjectId,
+        messageId: Types.ObjectId,
         text: string,
         handwritingProfile: IHandwritingSnapshot,
         customizations: {
@@ -214,8 +214,8 @@ class ChatService {
 
     /*** Generate final PDF */
     async generateChatPdf(
-        chatSessionId: Schema.Types.ObjectId,
-        userId: Schema.Types.ObjectId,
+        chatSessionId: Types.ObjectId,
+        userId: Types.ObjectId,
         customizations: {
             inkColor: string;
             fontSize: number;
@@ -292,7 +292,7 @@ class ChatService {
 
     /*** Get chat session with messages */
     async getChatSession(
-        chatSessionId: Schema.Types.ObjectId
+        chatSessionId: Types.ObjectId
     ): Promise<IChatSession> {
         try {
             const session = await this.ChatSessionModel.findById(chatSessionId)
@@ -312,7 +312,7 @@ class ChatService {
 
     /*** Search chat sessions */
     async searchSessions(
-        userId: Schema.Types.ObjectId,
+        userId: Types.ObjectId,
         filters: IChatSearchFilters & {
             page: number;
             limit: number;
@@ -380,7 +380,7 @@ class ChatService {
     }
 
     /*** Get chat statistics */
-    async getStats(userId: Schema.Types.ObjectId): Promise<IChatStats> {
+    async getStats(userId: Types.ObjectId): Promise<IChatStats> {
         try {
             const totalSessions = await this.ChatSessionModel.countDocuments({
                 user: userId,
@@ -393,10 +393,10 @@ class ChatService {
                 user: userId,
                 status: "archived",
             });
+
+            const sessionIds = await this.ChatSessionModel.distinct("_id", { user: userId });
             const totalMessages = await this.ChatMessageModel.countDocuments({
-                chatSession: {
-                    $in: await this.ChatSessionModel.find({ user: userId }).select("_id"),
-                },
+                chatSession: { $in: sessionIds },
             });
 
             const averageMessagesPerSession =
@@ -423,7 +423,7 @@ class ChatService {
 
     /*** Update chat session */
     async updateSession(
-        chatSessionId: Schema.Types.ObjectId,
+        chatSessionId: Types.ObjectId,
         updates: {
             title?: string;
             status?: "active" | "archived" | "deleted";
@@ -455,7 +455,7 @@ class ChatService {
 
     /*** Delete chat session */
     async deleteSession(
-        chatSessionId: Schema.Types.ObjectId,
+        chatSessionId: Types.ObjectId,
         hardDelete: boolean = false
     ): Promise<boolean> {
         try {
