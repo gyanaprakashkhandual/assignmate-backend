@@ -7,6 +7,7 @@ import "./configs/integration/passport.config";
 import { logger } from "./utils/logger.util";
 import { console_util } from "./utils/console.util";
 import { globalErrorHandler } from "./utils/error.util";
+import { v2 as cloudinary } from "cloudinary";
 
 import authRouter from "./routes/core/user.route";
 import profileRouter from "./routes/core/profile.route";
@@ -20,6 +21,13 @@ const ALLOWED_ORIGINS = [
     "http://localhost:5000",
     "http://127.0.0.1:5000",
 ].filter(Boolean) as string[];
+
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 app.use(helmet());
 app.use(cookieParser());
