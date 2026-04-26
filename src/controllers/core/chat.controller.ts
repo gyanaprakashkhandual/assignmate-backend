@@ -50,9 +50,8 @@ export class ChatController {
                 throw new UnauthorizedError("User ID not found");
             }
 
-            /*** Get user's handwriting profile */
             const profile = await this.profileService.getProfile(
-                new Types.ObjectId(userId) as unknown as Schema.Types.ObjectId
+                new Types.ObjectId(userId)
             );
             if (!profile?.handwritingImage) {
                 throw new ValidationError("Handwriting profile not found. Please upload first.");

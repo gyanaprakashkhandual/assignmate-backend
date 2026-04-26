@@ -80,6 +80,8 @@ async function handleOAuthProfile(
     }
 }
 
+// No serializeUser/deserializeUser needed — JWT only, no sessions
+
 passport.use(
     new GoogleStrategy(
         {

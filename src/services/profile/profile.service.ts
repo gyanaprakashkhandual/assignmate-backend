@@ -1,16 +1,12 @@
-import { Model, Schema } from "mongoose";
+import { Model, Types } from "mongoose";
 import { IProfileDocument } from "../../types/core/profile.types";
 import { NotFoundError } from "../../utils/error.util";
 import { logger } from "../../utils/logger.util";
 
-/*** Profile Service */
 class ProfileService {
-  constructor(private ProfileModel: Model<IProfileDocument>) {}
+  constructor(private ProfileModel: Model<IProfileDocument>) { }
 
-  /*** Get user profile */
-  async getProfile(
-    userId: Schema.Types.ObjectId
-  ): Promise<IProfileDocument | null> {
+  async getProfile(userId: Types.ObjectId): Promise<IProfileDocument | null> {
     try {
       const profile = await this.ProfileModel.findOne({ user: userId }).lean();
 
@@ -25,8 +21,7 @@ class ProfileService {
     }
   }
 
-  /*** Check if user has handwriting uploaded */
-  async hasHandwriting(userId: Schema.Types.ObjectId): Promise<boolean> {
+  async hasHandwriting(userId: Types.ObjectId): Promise<boolean> {
     try {
       const profile = await this.ProfileModel.findOne(
         { user: userId },

@@ -10,10 +10,10 @@ class OpenRouterService {
     private model: string = "anthropic/claude-sonnet-4-20250514";
 
     constructor() {
-        this.apiKey = process.env.OPENROUTER_API_KEY || "";
+        this.apiKey = process.env.OPEN_ROUTER_API_KEY || "";
 
         if (!this.apiKey) {
-            throw new Error("OPENROUTER_API_KEY not configured");
+            throw new Error("OPEN_ROUTER_API_KEY not configured");
         }
 
         this.client = axios.create({
