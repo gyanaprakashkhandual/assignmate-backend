@@ -15,17 +15,21 @@ const router = Router();
 
 router.get("/google", passport.authenticate("google", { scope: ["profile", "email"], session: false }));
 
-
 router.get("/github", passport.authenticate("github", { scope: ["user:email"], session: false }));
-// user.route.ts
+
 router.get(
     "/google/callback",
     passport.authenticate("google", { failureRedirect: "/auth", session: false }),
     (req, res) => {
         const user = req.user as any;
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: "7d" });
-        res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production" });
-        res.redirect(`${process.env.CLIENT_URL}/auth/callback`); // ✅ redirect here
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+        res.redirect(`${process.env.CLIENT_URL}/auth/callback`);
     }
 );
 
@@ -35,8 +39,13 @@ router.get(
     (req, res) => {
         const user = req.user as any;
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: "7d" });
-        res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production" });
-        res.redirect(`${process.env.CLIENT_URL}/auth/callback`); // ✅ redirect here
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+        res.redirect(`${process.env.CLIENT_URL}/auth/callback`);
     }
 );
 

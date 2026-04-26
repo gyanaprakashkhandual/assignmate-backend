@@ -1,4 +1,4 @@
-import express, { Application, Request, Response, NextFunction } from "express";
+import express, { Application, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
@@ -8,16 +8,10 @@ import { logger } from "./utils/logger.util";
 import { console_util } from "./utils/console.util";
 import { globalErrorHandler } from "./utils/error.util";
 
-
-/* Core Imports (Router) */
 import authRouter from "./routes/core/user.route";
 import profileRouter from "./routes/core/profile.route";
 
 const app: Application = express();
-
-app.use(helmet());
-// app.ts
-app.use(cookieParser());
 
 const ALLOWED_ORIGINS = [
     process.env.CLIENT_URL,
@@ -27,15 +21,16 @@ const ALLOWED_ORIGINS = [
     "http://127.0.0.1:5000",
 ].filter(Boolean) as string[];
 
+app.use(helmet());
+app.use(cookieParser());
 app.use(
     cors({
         origin: (origin, callback) => {
             if (!origin || ALLOWED_ORIGINS.includes(origin)) {
                 callback(null, true);
             } else {
-                const error = new Error(`CORS blocked: ${origin}`);
                 logger.warn("CORS", `CORS blocked for origin: ${origin}`);
-                callback(error);
+                callback(new Error(`CORS blocked: ${origin}`));
             }
         },
         credentials: true,
@@ -43,10 +38,8 @@ app.use(
         allowedHeaders: ["Content-Type", "Authorization"],
     })
 );
-
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-app.use(cookieParser());
 
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -64,15 +57,13 @@ const authLimiter = rateLimit({
     message: { success: false, message: "Too many auth attempts, please try again later" },
 });
 
-
 app.get("/health", (_req: Request, res: Response) => {
     console_util.success("Server", "Health check passed");
     res.status(200).json({ success: true, message: "Server is healthy" });
 });
 
-/* Core Routes */
 app.use("/api/auth", authRouter);
-app.use("/api/profile", profileRouter);
+app.use("/api/profile", globalLimiter, profileRouter);
 
 app.use((_req: Request, res: Response) => {
     logger.warn("Server", "Route not found", { path: _req.path, method: _req.method });

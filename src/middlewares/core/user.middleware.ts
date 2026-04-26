@@ -5,7 +5,7 @@ import { OAuthCallbackUser } from "../../types/core/user.types";
 
 declare global {
     namespace Express {
-        interface User extends OAuthCallbackUser {}
+        interface User extends OAuthCallbackUser { }
     }
 }
 
