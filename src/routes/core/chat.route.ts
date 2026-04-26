@@ -5,41 +5,39 @@ import { IChatSession, IChatMessage } from "../../types/core/chat.types";
 import { isAuthenticated } from "../../middlewares/utils/auth.middleware";
 import { console_util } from "../../utils/console.util";
 
-export const createChatRoutes = (
-  ChatSessionModel: Model<IChatSession>,
-  ChatMessageModel: Model<IChatMessage>,
-  ProfileModel: any
-): Router => {
-  const router = Router();
-  const chatController = new ChatController(
-    ChatSessionModel,
-    ChatMessageModel,
-    ProfileModel
-  );
+const ChatSessionModel = null as unknown as Model<IChatSession>;
+const ChatMessageModel = null as unknown as Model<IChatMessage>;
+const ProfileModel = null as any;
 
-  /*** Logging middleware */
-  router.use((req: Request, _res: Response, next: NextFunction) => {
-    console_util.verbose("ChatRoutes", `${req.method} ${req.path}`);
-    next();
-  });
+const router = Router();
+const chatController = new ChatController(
+  ChatSessionModel,
+  ChatMessageModel,
+  ProfileModel
+);
 
-  /*** All routes require authentication */
-  router.use(isAuthenticated);
+/*** Logging middleware */
+router.use((req: Request, _res: Response, next: NextFunction) => {
+  console_util.verbose("ChatRoutes", `${req.method} ${req.path}`);
+  next();
+});
 
-  /*** Session Management */
-  router.post("/session", chatController.createSession);
-  router.get("/", chatController.listSessions);
-  router.get("/stats", chatController.getStats);
-  router.get("/:sessionId", chatController.getSession);
-  router.patch("/:sessionId", chatController.updateSession);
-  router.delete("/:sessionId", chatController.deleteSession);
+/*** All routes require authentication */
+router.use(isAuthenticated);
 
-  /*** Message & Generation */
-  router.post("/:sessionId/message", chatController.sendMessage);
-  router.post("/:messageId/preview", chatController.renderPreview);
+/*** Session Management */
+router.post("/session", chatController.createSession);
+router.get("/", chatController.listSessions);
+router.get("/stats", chatController.getStats);
+router.get("/:sessionId", chatController.getSession);
+router.patch("/:sessionId", chatController.updateSession);
+router.delete("/:sessionId", chatController.deleteSession);
 
-  /*** PDF Export */
-  router.post("/:sessionId/export", chatController.exportPdf);
+/*** Message & Generation */
+router.post("/:sessionId/message", chatController.sendMessage);
+router.post("/:messageId/preview", chatController.renderPreview);
 
-  return router;
-};
+/*** PDF Export */
+router.post("/:sessionId/export", chatController.exportPdf);
+
+export default router;

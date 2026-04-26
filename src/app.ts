@@ -11,6 +11,7 @@ import { v2 as cloudinary } from "cloudinary";
 
 import authRouter from "./routes/core/user.route";
 import profileRouter from "./routes/core/profile.route";
+import chatRouter from "./routes/core/chat.route";
 
 const app: Application = express();
 
@@ -72,6 +73,7 @@ app.get("/health", (_req: Request, res: Response) => {
 
 app.use("/api/auth", authRouter);
 app.use("/api/profile", globalLimiter, profileRouter);
+app.use("/api/chat", chatRouter);
 
 app.use((_req: Request, res: Response) => {
     logger.warn("Server", "Route not found", { path: _req.path, method: _req.method });
