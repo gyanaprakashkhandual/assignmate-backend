@@ -1,4 +1,4 @@
-import { Document, Types } from "mongoose";
+import { Document, Schema, Types } from "mongoose";
 
 export type UserDesignation = string;
 
@@ -19,6 +19,17 @@ export interface IProfile {
     updatedAt: Date;
 }
 
-export interface IProfileDocument extends IProfile, Document {
-    _id: Types.ObjectId;
+export interface IProfileDocument extends Document {
+    user: Schema.Types.ObjectId;
+    username: string;
+    nickname?: string;
+    designation?: string;
+    age?: number;
+    handwritingImage?: {
+        url: string;
+        publicId: string;
+        uploadedAt: Date;
+    };
+    createdAt: Date;
+    updatedAt: Date;
 }

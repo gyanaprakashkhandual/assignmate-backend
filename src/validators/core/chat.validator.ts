@@ -53,7 +53,13 @@ export const CanvasRenderSchema = z.object({
             marginLeft: z.number().min(0).max(100).default(20),
             marginTop: z.number().min(0).max(100).default(20),
         })
-        .default({}),
+        .default({
+            inkColor: "#000000",
+            fontSize: 14,
+            lineSpacing: 1.5,
+            marginLeft: 20,
+            marginTop: 20,
+        }),
 });
 
 /*** PDF Export Request */
@@ -73,7 +79,13 @@ export const PdfExportSchema = z.object({
             marginLeft: z.number().min(0).max(100).default(20),
             marginTop: z.number().min(0).max(100).default(20),
         })
-        .default({}),
+        .default({
+            inkColor: "#000000",
+            fontSize: 14,
+            lineSpacing: 1.5,
+            marginLeft: 20,
+            marginTop: 20,
+        }),
 });
 
 /*** Chat Session Update Request */

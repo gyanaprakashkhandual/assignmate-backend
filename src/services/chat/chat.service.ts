@@ -1,4 +1,4 @@
-import { Model, Schema } from "mongoose";
+import mongoose, { Model, Schema } from "mongoose";
 import {
     IChatSession,
     IChatMessage,
@@ -148,7 +148,7 @@ class ChatService {
                 },
             });
 
-            session.messages.push(aiMessage._id);
+            session.messages.push(new mongoose.Types.ObjectId(aiMessage._id.toString()));
             await session.save();
 
             logger.info("ChatService", "AI response generated", {
