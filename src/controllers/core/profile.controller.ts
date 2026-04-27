@@ -155,7 +155,7 @@ export const uploadHandwritingImage = catchAsync(async (req: Request, res: Respo
 
     const { url, publicId } = await uploadToCloudinary(req.file.buffer, "inkify/handwriting");
 
-    profile.handwritingImage = { url, publicId, uploadedAt: new Date() };
+    profile.handwritingImage = { url, publicId, uploadedAt: new Date(), extraData: {} };
     await profile.save();
 
     logger.info("ProfileController", "Handwriting image uploaded", { userId: currentUser._id, publicId });
