@@ -7,7 +7,8 @@ import { IHandwritingSnapshot } from "../../types/core/chat.types";
 class OpenRouterService {
     private client: AxiosInstance;
     private apiKey: string;
-    private model: string = "anthropic/claude-sonnet-4-20250514";
+    private modelText: string = "anthropic/claude-sonnet-4-5";
+    private modelVision: string = "anthropic/claude-haiku-4-5";
 
     constructor() {
         this.apiKey = process.env.OPEN_ROUTER_API_KEY || "";
@@ -66,12 +67,12 @@ Keep responses concise but complete.`;
 
         try {
             console_util.verbose("OpenRouterService", "Calling Claude via OpenRouter", {
-                model: this.model,
+                model: this.modelText,
                 questionLength: question.length,
             });
 
             const response = await this.client.post("/chat/completions", {
-                model: this.model,
+                model: this.modelText,
                 messages: [
                     {
                         role: "system",
@@ -166,7 +167,7 @@ Return JSON with:
             });
 
             const response = await this.client.post("/chat/completions", {
-                model: this.model,
+                model: this.modelVision,
                 messages: [
                     {
                         role: "system",
@@ -213,7 +214,7 @@ Return JSON with:
     async testConnection(): Promise<boolean> {
         try {
             const response = await this.client.post("/chat/completions", {
-                model: this.model,
+                model: this.modelText,
                 messages: [{ role: "user", content: "test" }],
                 max_tokens: 10,
             });
