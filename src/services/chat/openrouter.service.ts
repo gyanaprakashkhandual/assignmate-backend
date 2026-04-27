@@ -7,8 +7,8 @@ import { IHandwritingSnapshot } from "../../types/core/chat.types";
 class OpenRouterService {
     private client: AxiosInstance;
     private apiKey: string;
-    private modelText: string = "anthropic/claude-sonnet-4-5";
-    private modelVision: string = "anthropic/claude-haiku-4-5";
+    private modelText: string = "anthropic/claude-sonnet-4.5";
+    private modelVision: string = "anthropic/claude-haiku-4.5";
 
     constructor() {
         this.apiKey = process.env.OPEN_ROUTER_API_KEY || "";
@@ -18,10 +18,10 @@ class OpenRouterService {
         }
 
         this.client = axios.create({
-            baseURL: "https://openrouter.io/api/v1",
+            baseURL: "https://openrouter.ai/api/v1",
             headers: {
                 Authorization: `Bearer ${this.apiKey}`,
-                "HTTP-Referer": process.env.APP_URL || "http://localhost:3000",
+                "HTTP-Referer": process.env.CLIENT_URL || "http://localhost:3000",
                 "Content-Type": "application/json",
             },
             timeout: 60000,
