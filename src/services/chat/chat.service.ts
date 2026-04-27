@@ -1,505 +1,345 @@
-import mongoose, { Model, Types } from "mongoose";
+import { Model, Types } from "mongoose";
 import {
     IChatSession,
     IChatMessage,
-    IChatStats,
-    IChatSearchFilters,
     IHandwritingSnapshot,
 } from "../../types/core/chat.types";
+import { openRouterService } from "../chat/openrouter.service";
+import { handwritingPdfService, IPdfRenderOptions } from "../pdf/pdf.service";
+import { cloudinaryService } from "../../services/cloudinary/cloudinary.service";
 import { logger } from "../../utils/logger.util";
 import { console_util } from "../../utils/console.util";
-import { openRouterService } from "./openrouter.service";
-import { renderingService } from "./rendering.service";
-import { cloudinaryService } from "./cloudinary.service";
 import { NotFoundError } from "../../utils/error.util";
 
-/*** Chat Service */
-class ChatService {
-    constructor(
-        private ChatSessionModel: Model<IChatSession>,
-        private ChatMessageModel: Model<IChatMessage>
-    ) { }
-
-    /*** Create new chat session */
-    async createChatSession(
-        userId: Types.ObjectId,
-        title: string,
-        handwritingProfile: IHandwritingSnapshot
-    ): Promise<IChatSession> {
-        try {
-            const session = await this.ChatSessionModel.create({
-                user: userId,
-                title,
-                messages: [],
-                handwritingProfileSnapshot: handwritingProfile,
-                status: "active",
-                isStarred: false,
-            });
-
-            logger.info("ChatService", "Chat session created", {
-                sessionId: session._id,
-                userId,
-            });
-
-            console_util.success("ChatService", "New chat session", {
-                id: session._id,
-                title,
-            });
-
-            return session;
-        } catch (error) {
-            const errorMessage =
-                error instanceof Error ? error.message : "Unknown error";
-            logger.error("ChatService", "Failed to create chat session", {
-                error: errorMessage,
-            });
-
-            throw error;
-        }
-    }
-
-    /*** Add user question to chat */
-    async addUserQuestion(
-        chatSessionId: Types.ObjectId,
-        question: string
-    ): Promise<IChatMessage> {
-        try {
-            const session = await this.ChatSessionModel.findById(chatSessionId);
-            if (!session) {
-                throw new NotFoundError("Chat session");
-            }
-
-            const order = session.messages.length;
-            const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-            const message = await this.ChatMessageModel.create({
-                chatSession: chatSessionId,
-                type: "user_question",
-                content: question,
-                order,
-                metadata: {
-                    messageId,
-                    timestamp: new Date(),
-                },
-            });
-
-            session.messages.push(message._id as Types.ObjectId);
-            await session.save();
-
-            logger.info("ChatService", "User question added", {
-                messageId: message._id,
-                chatSessionId,
-            });
-
-            return message;
-        } catch (error) {
-            logger.error("ChatService", "Failed to add user question", { error });
-            throw error;
-        }
-    }
-
-    /*** Generate AI response */
-    async generateAiResponse(
-        chatSessionId: Types.ObjectId,
-        userQuestion: string
-    ): Promise<IChatMessage> {
-        try {
-            const session = await this.ChatSessionModel.findById(
-                chatSessionId
-            ).populate("messages");
-            if (!session) {
-                throw new NotFoundError("Chat session");
-            }
-
-            /*** Build chat history */
-            const chatHistory = (session.messages as unknown as IChatMessage[]).map(
-                (msg) => ({
-                    role: (msg.type === "user_question" ? "user" : "assistant") as "user" | "assistant",
-                    content: msg.content,
-                })
-            );
-
-            /*** Call Claude via OpenRouter */
-            console_util.verbose("ChatService", "Generating AI response...");
-            const startTime = Date.now();
-
-            const { answer, tokensUsed, processingTimeMs } =
-                await openRouterService.generateAssignmentAnswer(
-                    userQuestion,
-                    chatHistory,
-                    session.handwritingProfileSnapshot
-                );
-
-            /*** Save AI response */
-            const order = session.messages.length;
-            const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-            const aiMessage = await this.ChatMessageModel.create({
-                chatSession: chatSessionId,
-                type: "ai_answer",
-                content: answer,
-                order,
-                metadata: {
-                    messageId,
-                    timestamp: new Date(),
-                    processingTimeMs,
-                    tokensUsed,
-                    model: "claude-sonnet-4-20250514",
-                },
-            });
-
-            session.messages.push(new mongoose.Types.ObjectId(aiMessage._id.toString()));
-            await session.save();
-
-            logger.info("ChatService", "AI response generated", {
-                messageId: aiMessage._id,
-                chatSessionId,
-                tokensUsed,
-                processingTimeMs,
-            });
-
-            console_util.success("ChatService", "AI response saved", {
-                messageId: aiMessage._id,
-            });
-
-            return aiMessage;
-        } catch (error) {
-            logger.error("ChatService", "Failed to generate AI response", { error });
-            throw error;
-        }
-    }
-
-    /*** Render message to handwriting preview */
-    async renderMessagePreview(
-        messageId: Types.ObjectId,
-        text: string,
-        handwritingProfile: IHandwritingSnapshot,
-        customizations: {
-            inkColor: string;
-            fontSize: number;
-            lineSpacing: number;
-            marginLeft: number;
-            marginTop: number;
-        },
-        paperStyle: "lined" | "plain" | "college_ruled"
-    ): Promise<string> {
-        try {
-            console_util.verbose("ChatService", "Rendering message preview");
-
-            const canvasDataUrl = await renderingService.renderTextToCanvas({
-                text,
-                handwritingProfile,
-                customizations,
-                paperStyle,
-                width: 800,
-                height: 600,
-            });
-
-            /*** Update message with preview */
-            await this.ChatMessageModel.findByIdAndUpdate(messageId, {
-                $set: {
-                    "handwritingRenderData.canvasDataUrl": canvasDataUrl,
-                    "handwritingRenderData.publishedAt": new Date(),
-                },
-            });
-
-            logger.info("ChatService", "Message preview rendered", { messageId });
-
-            return canvasDataUrl;
-        } catch (error) {
-            logger.error("ChatService", "Failed to render preview", { error });
-            throw error;
-        }
-    }
-
-    /*** Generate final PDF */
-    async generateChatPdf(
-        chatSessionId: Types.ObjectId,
-        userId: Types.ObjectId,
-        customizations: {
-            inkColor: string;
-            fontSize: number;
-            lineSpacing: number;
-            marginLeft: number;
-            marginTop: number;
-        },
-        paperStyle: "lined" | "plain" | "college_ruled"
-    ): Promise<{
-        pdfUrl: string;
-        pdfPublicId: string;
-        fileSize: number;
-    }> {
-        try {
-            console_util.verbose("ChatService", "Starting PDF generation...");
-
-            const session = await this.ChatSessionModel.findById(
-                chatSessionId
-            ).populate("messages");
-            if (!session) {
-                throw new NotFoundError("Chat session");
-            }
-
-            /*** Prepare messages for PDF */
-            const messages = (session.messages as unknown as IChatMessage[]).map(
-                (msg) => ({
-                    type: msg.type,
-                    content: msg.content,
-                    canvasDataUrl: msg.handwritingRenderData?.canvasDataUrl,
-                })
-            );
-
-            /*** Generate PDF */
-            const pdfBuffer = await renderingService.generatePdfFromMessages(
-                messages,
-                customizations,
-                paperStyle
-            );
-
-            /*** Upload to Cloudinary */
-            const fileName = `${chatSessionId}_${Date.now()}.pdf`;
-            const { url, publicId, fileSize } = await cloudinaryService.uploadPdf(
-                pdfBuffer,
-                fileName,
-                userId.toString()
-            );
-
-            /*** Update session */
-            await this.ChatSessionModel.findByIdAndUpdate(chatSessionId, {
-                $set: {
-                    pdfUrl: url,
-                    pdfPublicId: publicId,
-                    pdfGeneratedAt: new Date(),
-                },
-            });
-
-            logger.info("ChatService", "PDF generated and uploaded", {
-                chatSessionId,
-                pdfUrl: url,
-                fileSize,
-            });
-
-            console_util.success("ChatService", "PDF ready", {
-                chatSessionId,
-                size: fileSize,
-            });
-
-            return { pdfUrl: url, pdfPublicId: publicId, fileSize };
-        } catch (error) {
-            logger.error("ChatService", "Failed to generate PDF", { error });
-            throw error;
-        }
-    }
-
-    /*** Get chat session with messages */
-    async getChatSession(
-        chatSessionId: Types.ObjectId
-    ): Promise<IChatSession> {
-        try {
-            const session = await this.ChatSessionModel.findById(chatSessionId)
-                .populate("messages")
-                .lean();
-
-            if (!session) {
-                throw new NotFoundError("Chat session");
-            }
-
-            return session;
-        } catch (error) {
-            logger.error("ChatService", "Failed to get chat session", { error });
-            throw error;
-        }
-    }
-
-    /*** Search chat sessions */
-    async searchSessions(
-        userId: Types.ObjectId,
-        filters: IChatSearchFilters & {
-            page: number;
-            limit: number;
-            sortBy: "createdAt" | "updatedAt" | "title";
-            sortOrder: "asc" | "desc";
-        }
-    ): Promise<{
-        sessions: IChatSession[];
-        total: number;
-        page: number;
-        limit: number;
-        totalPages: number;
-    }> {
-        try {
-            const query: Record<string, unknown> = { user: userId };
-
-            if (filters.status) {
-                query.status = filters.status;
-            }
-
-            if (typeof filters.isStarred === "boolean") {
-                query.isStarred = filters.isStarred;
-            }
-
-            if (filters.createdAfter) {
-                query.createdAt = { $gte: filters.createdAfter };
-            }
-
-            if (filters.createdBefore) {
-                if (query.createdAt) {
-                    (query.createdAt as Record<string, unknown>).$lte = filters.createdBefore;
-                } else {
-                    query.createdAt = { $lte: filters.createdBefore };
-                }
-            }
-
-            if (filters.searchQuery) {
-                query.title = { $regex: filters.searchQuery, $options: "i" };
-            }
-
-            const skip = (filters.page - 1) * filters.limit;
-            const sortObj: Record<string, 1 | -1> = {};
-            sortObj[filters.sortBy] = filters.sortOrder === "asc" ? 1 : -1;
-
-            const total = await this.ChatSessionModel.countDocuments(query);
-            const sessions = await this.ChatSessionModel.find(query)
-                .sort(sortObj)
-                .skip(skip)
-                .limit(filters.limit)
-                .lean();
-
-            const totalPages = Math.ceil(total / filters.limit);
-
-            logger.info("ChatService", "Sessions searched", {
-                userId,
-                total,
-                page: filters.page,
-            });
-
-            return { sessions, total, page: filters.page, limit: filters.limit, totalPages };
-        } catch (error) {
-            logger.error("ChatService", "Search failed", { error });
-            throw error;
-        }
-    }
-
-    /*** Get chat statistics */
-    async getStats(userId: Types.ObjectId): Promise<IChatStats> {
-        try {
-            const totalSessions = await this.ChatSessionModel.countDocuments({
-                user: userId,
-            });
-            const activeSessions = await this.ChatSessionModel.countDocuments({
-                user: userId,
-                status: "active",
-            });
-            const archivedSessions = await this.ChatSessionModel.countDocuments({
-                user: userId,
-                status: "archived",
-            });
-
-            const sessionIds = await this.ChatSessionModel.distinct("_id", { user: userId });
-            const totalMessages = await this.ChatMessageModel.countDocuments({
-                chatSession: { $in: sessionIds },
-            });
-
-            const averageMessagesPerSession =
-                totalSessions > 0 ? Math.round(totalMessages / totalSessions) : 0;
-
-            const totalPdfsGenerated = await this.ChatSessionModel.countDocuments({
-                user: userId,
-                pdfUrl: { $ne: null },
-            });
-
-            return {
-                totalSessions,
-                activeSessions,
-                archivedSessions,
-                totalMessages,
-                averageMessagesPerSession,
-                totalPdfsGenerated,
-            };
-        } catch (error) {
-            logger.error("ChatService", "Failed to get stats", { error });
-            throw error;
-        }
-    }
-
-    /*** Update chat session */
-    async updateSession(
-        chatSessionId: Types.ObjectId,
-        updates: {
-            title?: string;
-            status?: "active" | "archived" | "deleted";
-            isStarred?: boolean;
-        }
-    ): Promise<IChatSession> {
-        try {
-            const session = await this.ChatSessionModel.findByIdAndUpdate(
-                chatSessionId,
-                { $set: updates },
-                { new: true }
-            );
-
-            if (!session) {
-                throw new NotFoundError("Chat session");
-            }
-
-            logger.info("ChatService", "Session updated", {
-                chatSessionId,
-                updates,
-            });
-
-            return session;
-        } catch (error) {
-            logger.error("ChatService", "Failed to update session", { error });
-            throw error;
-        }
-    }
-
-    /*** Delete chat session */
-    async deleteSession(
-        chatSessionId: Types.ObjectId,
-        hardDelete: boolean = false
-    ): Promise<boolean> {
-        try {
-            const session = await this.ChatSessionModel.findById(chatSessionId);
-            if (!session) {
-                throw new NotFoundError("Chat session");
-            }
-
-            if (hardDelete) {
-                /*** Delete from Cloudinary */
-                if (session.pdfPublicId) {
-                    await cloudinaryService.deleteResource(session.pdfPublicId);
-                }
-
-                /*** Delete all messages */
-                await this.ChatMessageModel.deleteMany({
-                    chatSession: chatSessionId,
-                });
-
-                /*** Delete session */
-                await this.ChatSessionModel.findByIdAndDelete(chatSessionId);
-            } else {
-                /*** Soft delete */
-                await this.ChatSessionModel.findByIdAndUpdate(chatSessionId, {
-                    $set: { status: "deleted" },
-                });
-            }
-
-            logger.info("ChatService", "Session deleted", {
-                chatSessionId,
-                hardDelete,
-            });
-
-            return true;
-        } catch (error) {
-            logger.error("ChatService", "Failed to delete session", { error });
-            throw error;
-        }
-    }
-}
-
-export const createChatService = (
+export function createChatService(
     ChatSessionModel: Model<IChatSession>,
     ChatMessageModel: Model<IChatMessage>
-): ChatService => {
-    return new ChatService(ChatSessionModel, ChatMessageModel);
-};
+) {
+    // -------------------------------------------------------------------------
+    // Session management
+    // -------------------------------------------------------------------------
+
+    async function createChatSession(
+        userId: Types.ObjectId,
+        title: string,
+        handwritingSnapshot: IHandwritingSnapshot
+    ): Promise<IChatSession> {
+        const session = await ChatSessionModel.create({
+            user: userId,
+            title,
+            messages: [],
+            handwritingProfileSnapshot: handwritingSnapshot,
+            status: "active",
+            isStarred: false,
+        });
+
+        console_util.success("ChatService", "New chat session", {
+            id: session._id,
+            title: session.title,
+        });
+
+        return session;
+    }
+
+    async function getChatSession(
+        sessionId: Types.ObjectId
+    ): Promise<IChatSession> {
+        const session = await ChatSessionModel.findById(sessionId).populate(
+            "messages"
+        );
+        if (!session) throw new NotFoundError("Chat session");
+        return session;
+    }
+
+    async function updateSession(
+        sessionId: Types.ObjectId,
+        updates: Partial<Pick<IChatSession, "title" | "isStarred" | "status">>
+    ): Promise<IChatSession> {
+        const session = await ChatSessionModel.findByIdAndUpdate(
+            sessionId,
+            { $set: updates },
+            { new: true }
+        ).populate("messages");
+        if (!session) throw new NotFoundError("Chat session");
+        return session;
+    }
+
+    async function deleteSession(
+        sessionId: Types.ObjectId,
+        hard = false
+    ): Promise<void> {
+        if (hard) {
+            await ChatSessionModel.findByIdAndDelete(sessionId);
+            await ChatMessageModel.deleteMany({ chatSession: sessionId });
+        } else {
+            await ChatSessionModel.findByIdAndUpdate(sessionId, {
+                $set: { status: "deleted" },
+            });
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Messaging
+    // -------------------------------------------------------------------------
+
+    async function addUserQuestion(
+        sessionId: Types.ObjectId,
+        question: string
+    ): Promise<IChatMessage> {
+        const count = await ChatMessageModel.countDocuments({
+            chatSession: sessionId,
+        });
+
+        const msg = await ChatMessageModel.create({
+            chatSession: sessionId,
+            type: "user_question",
+            content: question,
+            order: count,
+            metadata: {
+                messageId: new Types.ObjectId().toString(),
+                timestamp: new Date(),
+            },
+        });
+
+        await ChatSessionModel.findByIdAndUpdate(sessionId, {
+            $push: { messages: msg._id },
+        });
+
+        return msg;
+    }
+
+    async function generateAiResponse(
+        sessionId: Types.ObjectId,
+        userQuestion: string
+    ): Promise<IChatMessage> {
+        console_util.verbose("ChatService", "Generating AI response...");
+
+        const session = await getChatSession(sessionId);
+        const snapshot = session.handwritingProfileSnapshot;
+
+        // Build chat history from previous messages for context
+        const previousMessages = (session.messages as any[])
+            .filter((m) => m.type !== undefined)
+            .map((m) => ({
+                role: m.type === "user_question" ? ("user" as const) : ("assistant" as const),
+                content: m.content as string,
+            }));
+
+        const { answer, tokensUsed, processingTimeMs } =
+            await openRouterService.generateAssignmentAnswer(
+                userQuestion,
+                previousMessages,
+                snapshot
+            );
+
+        const count = await ChatMessageModel.countDocuments({
+            chatSession: sessionId,
+        });
+
+        const msg = await ChatMessageModel.create({
+            chatSession: sessionId,
+            type: "ai_answer",
+            content: answer,
+            order: count,
+            metadata: {
+                messageId: new Types.ObjectId().toString(),
+                timestamp: new Date(),
+                processingTimeMs,
+                tokensUsed,
+                model: "anthropic/claude-sonnet-4.5",
+            },
+        });
+
+        await ChatSessionModel.findByIdAndUpdate(sessionId, {
+            $push: { messages: msg._id },
+        });
+
+        console_util.success("ChatService", "AI response saved", {
+            sessionId,
+            tokensUsed,
+            processingTimeMs,
+        });
+
+        return msg;
+    }
+
+    // -------------------------------------------------------------------------
+    // Preview render (returns base64 data URL — used in frontend canvas)
+    // -------------------------------------------------------------------------
+
+    async function renderMessagePreview(
+        _messageId: Types.ObjectId,
+        content: string,
+        handwritingSnapshot: IHandwritingSnapshot,
+        customizations: IPdfRenderOptions["customizations"],
+        paperStyle: IPdfRenderOptions["paperStyle"]
+    ): Promise<string> {
+        // For a single message preview we generate a 1-page PDF and return
+        // it as a base64 data URL so the frontend can display it
+        const { pdfBytes } = await handwritingPdfService.renderChatToPdf(
+            [{ type: "ai_answer", content }],
+            handwritingSnapshot,
+            { paperStyle, customizations },
+            (handwritingSnapshot.extractedStyles.extraData?.fontUrl as string) ?? undefined
+        );
+
+        const b64 = Buffer.from(pdfBytes).toString("base64");
+        return `data:application/pdf;base64,${b64}`;
+    }
+
+    // -------------------------------------------------------------------------
+    // Full PDF export
+    // -------------------------------------------------------------------------
+
+    async function generateChatPdf(
+        sessionId: Types.ObjectId,
+        userId: Types.ObjectId,
+        customizations: IPdfRenderOptions["customizations"],
+        paperStyle: IPdfRenderOptions["paperStyle"]
+    ): Promise<{ pdfUrl: string; pdfPublicId: string; fileSize: number }> {
+        console_util.verbose("ChatService", "Starting PDF generation", { sessionId });
+
+        const session = await getChatSession(sessionId);
+        const snapshot = session.handwritingProfileSnapshot;
+
+        // ── Collect all messages in order ────────────────────────────────────
+        const messages = (session.messages as any[])
+            .sort((a, b) => a.order - b.order)
+            .map((m) => ({
+                type: m.type as "user_question" | "ai_answer",
+                content: m.content as string,
+            }));
+
+        if (messages.length === 0) {
+            throw new Error("No messages to export");
+        }
+
+        // ── Resolve the TTF font URL from extraData ──────────────────────────
+        // The font URL is stored in extraData.fontUrl after Calligraphr upload.
+        // If it's not present the PDF service falls back to a system font.
+        const fontUrl =
+            (snapshot.extractedStyles.extraData?.fontUrl as string) ?? undefined;
+
+        // ── Render PDF ───────────────────────────────────────────────────────
+        const { pdfBytes, pageCount, fileSize } =
+            await handwritingPdfService.renderChatToPdf(
+                messages,
+                snapshot,
+                { paperStyle, customizations },
+                fontUrl
+            );
+
+        // ── Upload to Cloudinary ─────────────────────────────────────────────
+        const { url, publicId } = await cloudinaryService.uploadPdfBuffer(
+            Buffer.from(pdfBytes),
+            {
+                folder: `assignmate/pdfs/${userId}`,
+                publicId: `session_${sessionId}_${Date.now()}`,
+            }
+        );
+
+        // ── Persist URL on the session ───────────────────────────────────────
+        await ChatSessionModel.findByIdAndUpdate(sessionId, {
+            $set: {
+                pdfUrl: url,
+                pdfPublicId: publicId,
+                pdfGeneratedAt: new Date(),
+            },
+        });
+
+        logger.info("ChatService", "PDF exported", {
+            sessionId,
+            pageCount,
+            fileSize,
+            url,
+        });
+
+        console_util.success("ChatService", "PDF uploaded to Cloudinary", { url });
+
+        return { pdfUrl: url, pdfPublicId: publicId, fileSize };
+    }
+
+    // -------------------------------------------------------------------------
+    // Search & stats
+    // -------------------------------------------------------------------------
+
+    async function searchSessions(
+        userId: Types.ObjectId,
+        filters: {
+            status?: IChatSession["status"];
+            isStarred?: boolean;
+            searchQuery?: string;
+            page?: number;
+            limit?: number;
+        }
+    ) {
+        const query: Record<string, unknown> = { user: userId };
+
+        if (filters.status) query.status = filters.status;
+        if (filters.isStarred !== undefined) query.isStarred = filters.isStarred;
+        if (filters.searchQuery) {
+            query.title = { $regex: filters.searchQuery, $options: "i" };
+        }
+
+        const page = filters.page ?? 1;
+        const limit = filters.limit ?? 20;
+        const skip = (page - 1) * limit;
+
+        const [sessions, total] = await Promise.all([
+            ChatSessionModel.find(query)
+                .populate("messages")
+                .sort({ updatedAt: -1 })
+                .skip(skip)
+                .limit(limit),
+            ChatSessionModel.countDocuments(query),
+        ]);
+
+        return {
+            sessions,
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+        };
+    }
+
+    async function getStats(userId: Types.ObjectId) {
+        const [sessions, totalMessages, pdfs] = await Promise.all([
+            ChatSessionModel.find({ user: userId }),
+            ChatMessageModel.countDocuments({
+                chatSession: {
+                    $in: await ChatSessionModel.find({ user: userId }).distinct(
+                        "_id"
+                    ),
+                },
+            }),
+            ChatSessionModel.countDocuments({ user: userId, pdfUrl: { $exists: true } }),
+        ]);
+
+        const active = sessions.filter((s) => s.status === "active").length;
+        const archived = sessions.filter((s) => s.status === "archived").length;
+
+        return {
+            totalSessions: sessions.length,
+            activeSessions: active,
+            archivedSessions: archived,
+            totalMessages,
+            averageMessagesPerSession:
+                sessions.length > 0 ? totalMessages / sessions.length : 0,
+            totalPdfsGenerated: pdfs,
+        };
+    }
+
+    return {
+        createChatSession,
+        getChatSession,
+        updateSession,
+        deleteSession,
+        addUserQuestion,
+        generateAiResponse,
+        renderMessagePreview,
+        generateChatPdf,
+        searchSessions,
+        getStats,
+    };
+}

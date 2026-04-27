@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { Model, Schema } from "mongoose";
+import { Model } from "mongoose";
 import { Types } from "mongoose";
 import {
     IChatSession,
@@ -18,6 +18,7 @@ import {
 } from "../../validators/core/chat.validator";
 import { createChatService } from "../../services/chat/chat.service";
 import { createProfileService } from "../../services/profile/profile.service";
+import { openRouterService } from "../../services/chat/openrouter.service";
 import {
     ValidationError,
     NotFoundError,
@@ -54,20 +55,57 @@ export class ChatController {
                 new Types.ObjectId(userId)
             );
             if (!profile?.handwritingImage) {
-                throw new ValidationError("Handwriting profile not found. Please upload first.");
+                throw new ValidationError(
+                    "Handwriting profile not found. Please upload your handwriting photo first."
+                );
             }
 
-            /*** Extract handwriting characteristics (would use Claude Vision) */
-            const handwritingSnapshot = {
+            // ── Use real Claude Vision to extract handwriting styles ──────────
+            let extractedStyles: IHandwritingSnapshot["extractedStyles"];
+
+            try {
+                const characteristics =
+                    await openRouterService.extractHandwritingCharacteristics(
+                        profile.handwritingImage.url
+                    );
+
+                extractedStyles = {
+                    slant: characteristics.slant ?? 0.5,
+                    spacing: characteristics.spacing ?? 1.0,
+                    strokeWeight: characteristics.strokeWeight ?? 0.5,
+                    lineIrregularity: characteristics.lineIrregularity ?? 0.1,
+                    inkDensity: characteristics.inkDensity ?? 0.8,
+                    fontFamily: characteristics.fontFamily,
+                    // Preserve the Calligraphr TTF font URL if already stored
+                    extraData: profile.handwritingImage.extraData ?? {},
+                };
+
+                console_util.success(
+                    "ChatController",
+                    "Handwriting analysed by Claude Vision",
+                    extractedStyles
+                );
+            } catch (err) {
+                // Vision failed → fall back to safe defaults so the user isn't blocked
+                console_util.error(
+                    "ChatController",
+                    "Vision analysis failed, using defaults",
+                    err
+                );
+                extractedStyles = {
+                    slant: 0.5,
+                    spacing: 1.0,
+                    strokeWeight: 0.6,
+                    lineIrregularity: 0.1,
+                    inkDensity: 0.85,
+                    extraData: profile.handwritingImage.extraData ?? {},
+                };
+            }
+
+            const handwritingSnapshot: IHandwritingSnapshot = {
                 imageUrl: profile.handwritingImage.url,
                 publicId: profile.handwritingImage.publicId,
-                extractedStyles: {
-                    slant: 0.15,
-                    spacing: 1.2,
-                    strokeWeight: 0.9,
-                    lineIrregularity: 0.08,
-                    inkDensity: 0.85,
-                },
+                extractedStyles,
             };
 
             const session = await this.chatService.createChatSession(
@@ -91,10 +129,7 @@ export class ChatController {
                 sessionId: session._id,
             });
 
-            res.status(201).json({
-                success: true,
-                data: response,
-            });
+            res.status(201).json({ success: true, data: response });
         }
     );
 
@@ -108,7 +143,6 @@ export class ChatController {
 
             const userId = req.user?.id as string;
 
-            /*** Verify session belongs to user */
             const session = await this.chatService.getChatSession(
                 new Types.ObjectId(chatSessionId)
             );
@@ -117,13 +151,11 @@ export class ChatController {
                 throw new UnauthorizedError("Not authorized to access this session");
             }
 
-            /*** Add user question */
             const userMsg = await this.chatService.addUserQuestion(
                 new Types.ObjectId(chatSessionId),
                 userQuestion
             );
 
-            /*** Generate AI response */
             const aiMsg = await this.chatService.generateAiResponse(
                 new Types.ObjectId(chatSessionId),
                 userQuestion
@@ -153,19 +185,14 @@ export class ChatController {
                 },
             ];
 
-            res.status(200).json({
-                success: true,
-                data: messages,
-            });
+            res.status(200).json({ success: true, data: messages });
         }
     );
 
     /*** POST /api/chat/:messageId/preview - Render message preview */
     renderPreview = catchAsync(
         async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
-            const { customizations, paperStyle } = CanvasRenderSchema.parse(
-                req.body
-            );
+            const { customizations, paperStyle } = CanvasRenderSchema.parse(req.body);
             const messageId = req.params.messageId as string;
 
             const session = await this.chatService.getChatSession(
@@ -177,28 +204,25 @@ export class ChatController {
                 throw new UnauthorizedError("Not authorized");
             }
 
-            /*** Find message */
             const messages = session.messages as any;
-            const message = messages.find((m: any) => m._id.toString() === messageId);
-            if (!message) {
-                throw new NotFoundError("Message");
-            }
+            const message = messages.find(
+                (m: any) => m._id.toString() === messageId
+            );
+            if (!message) throw new NotFoundError("Message");
 
-            /*** Render preview */
-            const snapshot = session.handwritingProfileSnapshot;
-
+            const snap = session.handwritingProfileSnapshot;
             const handwritingSnapshot: IHandwritingSnapshot = {
-                imageUrl: snapshot.imageUrl,
-                publicId: snapshot.publicId,
+                imageUrl: snap.imageUrl,
+                publicId: snap.publicId,
                 extractedStyles: {
-                    slant: (snapshot.extractedStyles.slant as number) ?? 0,
-                    spacing: (snapshot.extractedStyles.spacing as number) ?? 0,
-                    strokeWeight: (snapshot.extractedStyles.strokeWeight as number) ?? 0,
-                    lineIrregularity: (snapshot.extractedStyles.lineIrregularity as number) ?? 0,
-                    inkDensity: (snapshot.extractedStyles.inkDensity as number) ?? 0,
-                    fontFamily: snapshot.extractedStyles.fontFamily as string | undefined,
-                    fontSize: snapshot.extractedStyles.fontSize as number | undefined,
-                    extraData: snapshot.extractedStyles.extraData as Record<string, unknown> | undefined,
+                    slant: (snap.extractedStyles.slant as number) ?? 0,
+                    spacing: (snap.extractedStyles.spacing as number) ?? 0,
+                    strokeWeight: (snap.extractedStyles.strokeWeight as number) ?? 0,
+                    lineIrregularity: (snap.extractedStyles.lineIrregularity as number) ?? 0,
+                    inkDensity: (snap.extractedStyles.inkDensity as number) ?? 0,
+                    fontFamily: snap.extractedStyles.fontFamily as string | undefined,
+                    fontSize: snap.extractedStyles.fontSize as number | undefined,
+                    extraData: snap.extractedStyles.extraData as Record<string, unknown> | undefined,
                 },
             };
 
@@ -212,10 +236,7 @@ export class ChatController {
 
             res.status(200).json({
                 success: true,
-                data: {
-                    messageId,
-                    previewImageUrl: canvasDataUrl,
-                },
+                data: { messageId, previewImageUrl: canvasDataUrl },
             });
         }
     );
@@ -238,7 +259,6 @@ export class ChatController {
                 throw new UnauthorizedError("Not authorized");
             }
 
-            /*** Generate PDF */
             const { pdfUrl, pdfPublicId, fileSize } =
                 await this.chatService.generateChatPdf(
                     new Types.ObjectId(chatSessionId),
@@ -283,10 +303,7 @@ export class ChatController {
                 createdAt: session.createdAt,
             };
 
-            res.status(200).json({
-                success: true,
-                data: response,
-            });
+            res.status(200).json({ success: true, data: response });
         }
     );
 
@@ -298,10 +315,7 @@ export class ChatController {
 
             const result = await this.chatService.searchSessions(
                 new Types.ObjectId(userId),
-                {
-                    ...filters,
-                    searchQuery: filters.query,
-                }
+                { ...filters, searchQuery: filters.query }
             );
 
             const sessions: IChatSessionResponse[] = (result.sessions as any[]).map(
@@ -359,10 +373,7 @@ export class ChatController {
                 createdAt: updated.createdAt,
             };
 
-            res.status(200).json({
-                success: true,
-                data: response,
-            });
+            res.status(200).json({ success: true, data: response });
         }
     );
 
@@ -375,7 +386,6 @@ export class ChatController {
             const session = await this.chatService.getChatSession(
                 new Types.ObjectId(req.params.sessionId as string)
             );
-
             if (session.user.toString() !== userId) {
                 throw new UnauthorizedError("Not authorized");
             }
@@ -400,10 +410,7 @@ export class ChatController {
             const userId = req.user?.id as string;
             const stats = await this.chatService.getStats(new Types.ObjectId(userId));
 
-            res.status(200).json({
-                success: true,
-                data: stats,
-            });
+            res.status(200).json({ success: true, data: stats });
         }
     );
 }

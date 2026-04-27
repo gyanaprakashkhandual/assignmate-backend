@@ -26,6 +26,7 @@ export interface IProfileDocument extends Document {
     designation?: string;
     age?: number;
     handwritingImage?: {
+        extraData: {};
         url: string;
         publicId: string;
         uploadedAt: Date;
