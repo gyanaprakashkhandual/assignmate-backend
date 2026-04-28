@@ -110,14 +110,26 @@ export const ChatSearchSchema = z.object({
     ),
     sortBy: z.enum(["createdAt", "updatedAt", "title"]).default("createdAt"),
     sortOrder: z.enum(["asc", "desc"]).default("desc"),
-    page: z.number().min(1).default(1),
-    limit: z.number().min(1).max(100).default(20),
+    page: z.preprocess((val) => {
+        const parsed = parseInt(val as string, 10);
+        return isNaN(parsed) ? 1 : parsed;
+    }, z.number().min(1).default(1)),
+    limit: z.preprocess((val) => {
+        const parsed = parseInt(val as string, 10);
+        return isNaN(parsed) ? 20 : parsed;
+    }, z.number().min(1).max(100).default(20)),
 });
 
 /*** Pagination Query */
 export const PaginationSchema = z.object({
-    page: z.number().min(1).default(1),
-    limit: z.number().min(1).max(100).default(20),
+    page: z.preprocess((val) => {
+        const parsed = parseInt(val as string, 10);
+        return isNaN(parsed) ? 1 : parsed;
+    }, z.number().min(1).default(1)),
+    limit: z.preprocess((val) => {
+        const parsed = parseInt(val as string, 10);
+        return isNaN(parsed) ? 20 : parsed;
+    }, z.number().min(1).max(100).default(20)),
 });
 
 /*** Type exports */
