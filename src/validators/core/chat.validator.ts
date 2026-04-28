@@ -104,7 +104,10 @@ export const UpdateChatSessionSchema = z.object({
 export const ChatSearchSchema = z.object({
     query: z.string().trim().optional(),
     status: z.enum(["active", "archived", "deleted"]).optional(),
-    isStarred: z.boolean().optional(),
+    isStarred: z.preprocess(
+        (val) => (val === "true" ? true : val === "false" ? false : val),
+        z.boolean().optional()
+    ),
     sortBy: z.enum(["createdAt", "updatedAt", "title"]).default("createdAt"),
     sortOrder: z.enum(["asc", "desc"]).default("desc"),
     page: z.number().min(1).default(1),
