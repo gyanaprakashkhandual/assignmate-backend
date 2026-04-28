@@ -1,53 +1,155 @@
-PROPRIETARY SOFTWARE LICENSE
+================================================================================
+                        PROPRIETARY LICENSE AGREEMENT
+                       ASSIGNMATE — BACKEND REPOSITORY
+================================================================================
 
-Copyright (c) 2026 Feel. All Rights Reserved.
+Copyright (c) 2026 Assignmate. All Rights Reserved.
 
-NOTICE: This software and its source code are the exclusive proprietary
-property of Feel. This repository and all of its contents are strictly
-confidential.
+NOTICE: This software, its source code, architecture, logic, documentation,
+configuration, assets, and all related materials contained within this
+repository are the exclusive intellectual property of the owner of Assignmate.
 
-RESTRICTIONS:
+================================================================================
+1. OWNERSHIP
+================================================================================
 
-1. No part of this software, including but not limited to the source code,
-   documentation, assets, architecture, algorithms, and data structures,
-   may be copied, reproduced, modified, distributed, transmitted,
-   transcribed, stored in a retrieval system, or translated into any
-   language or computer language, in any form or by any means, without
-   the prior explicit written permission of Feel.
+All content within this repository — including but not limited to source code,
+compiled binaries, scripts, configuration files, documentation, design
+documents, database schemas, API specifications, environment templates, and
+any other files or materials — are and shall remain the sole and exclusive
+property of Assignmate and its owner(s).
 
-2. This software may not be used, in whole or in part, for any purpose
-   other than the intended internal use by authorized personnel of Feel.
+No title, ownership, or intellectual property rights are transferred to any
+individual or entity through access to, or interaction with, this repository
+or any of its contents.
 
-3. You may not reverse engineer, decompile, disassemble, or attempt to
-   derive the source code of this software.
+================================================================================
+2. RESTRICTIONS
+================================================================================
 
-4. You may not sublicense, sell, rent, lease, transfer, assign, or
-   otherwise dispose of this software.
+Unless express prior written permission has been granted directly by the owner
+of Assignmate, the following actions are STRICTLY PROHIBITED:
 
-5. You may not use this software to create derivative works of any kind.
+  a) Accessing, reading, browsing, or viewing this repository or any of its
+     contents for any purpose other than those explicitly authorized in writing.
 
-6. Unauthorized use, reproduction, or distribution of this software,
-   or any portion of it, may result in severe civil and criminal penalties,
-   and will be prosecuted to the maximum extent possible under the law.
+  b) Copying, reproducing, or duplicating any portion of the source code,
+     documentation, configuration, or any other material from this repository,
+     in whole or in part, in any form or by any means.
 
-CONFIDENTIALITY:
+  c) Cloning, forking, downloading, or otherwise obtaining a local or remote
+     copy of this repository or any files contained within it.
 
-This repository is private and confidential. Access is strictly limited
-to authorized contributors explicitly approved by Feel. Any unauthorized
-access, cloning, forking, or use of this repository is strictly prohibited.
+  d) Modifying, adapting, translating, reverse engineering, decompiling,
+     disassembling, or creating derivative works based on any part of this
+     repository's contents.
 
-NO WARRANTY:
+  e) Distributing, sublicensing, selling, renting, leasing, transferring, or
+     otherwise making any part of this codebase or its materials available to
+     any third party.
 
-This software is provided "as is" without warranty of any kind, express
-or implied. Feel shall not be liable for any damages arising out of or
-in connection with the use or inability to use this software.
+  f) Using any part of this repository's code, logic, architecture, or design
+     to build, train, or inform any competing product, service, or application.
 
-GOVERNING LAW:
+  g) Using this repository's contents for any commercial purpose whatsoever
+     without the explicit written consent of the owner.
 
-This license shall be governed by and construed in accordance with
-applicable law. Any disputes arising under this license shall be subject
-to the exclusive jurisdiction of the courts of competent jurisdiction.
+  h) Publicly disclosing, sharing, publishing, or referencing any proprietary
+     implementation details, architectural decisions, or business logic derived
+     from this repository.
 
-For licensing inquiries, contact: legal@feel.app
+  i) Scraping, indexing, or using automated tools to extract any content from
+     this repository.
 
-ALL RIGHTS RESERVED.
+  j) Using any AI model, tool, or service to process, analyze, summarize, or
+     learn from the contents of this repository without explicit written
+     authorization.
+
+================================================================================
+3. AUTHORIZED ACCESS
+================================================================================
+
+Access to this repository is granted exclusively to individuals who have
+received explicit, written authorization from the owner of Assignmate. Such
+authorization is:
+
+  - Personal and non-transferable
+  - Limited to the scope and purpose explicitly defined in writing
+  - Revocable at any time at the sole discretion of the owner
+  - Not an implied license to use, copy, or distribute any part of the code
+
+Authorized contributors must adhere to all terms of this license and any
+additional confidentiality or contribution agreements in force.
+
+================================================================================
+4. CONFIDENTIALITY
+================================================================================
+
+All contents of this repository are considered strictly confidential and
+proprietary trade secrets of Assignmate. Authorized individuals who access
+this repository are obligated to:
+
+  - Maintain the confidentiality of all information accessed
+  - Not disclose any part of the codebase, logic, or architecture to any
+    unauthorized party
+  - Report any unauthorized access or security breach to the owner immediately
+  - Return or destroy all copies of proprietary materials upon request or
+    termination of their authorized access
+
+================================================================================
+5. NO WARRANTY
+================================================================================
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT ANY WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT. THE OWNER OF ASSIGNMATE
+SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGE, OR OTHER LIABILITY ARISING FROM
+ACCESS TO OR USE OF THIS REPOSITORY.
+
+================================================================================
+6. ENFORCEMENT AND LEGAL ACTION
+================================================================================
+
+Any unauthorized access, use, copying, distribution, or other violation of the
+terms set forth in this license constitutes:
+
+  - An infringement of the owner's intellectual property rights
+  - A breach of applicable copyright law, including but not limited to the
+    laws of the jurisdiction in which the owner operates
+  - Grounds for immediate civil and/or criminal legal action
+
+The owner reserves the right to pursue all available legal remedies against any
+individual or entity found to be in violation of this license, including but
+not limited to injunctive relief, monetary damages, and recovery of legal fees
+and costs.
+
+Violations may be reported to relevant legal authorities and platform providers
+(including but not limited to GitHub) for appropriate action.
+
+================================================================================
+7. GOVERNING LAW
+================================================================================
+
+This license and any disputes arising out of or related to the use of or
+access to this repository shall be governed by and construed in accordance
+with the applicable laws of the jurisdiction in which the owner of Assignmate
+is domiciled, without regard to conflict of law principles.
+
+================================================================================
+8. CONTACT
+================================================================================
+
+For licensing inquiries, authorized access requests, or to report a violation,
+please contact the repository owner directly through official channels.
+
+Unauthorized use will not be tolerated and will be acted upon accordingly.
+
+================================================================================
+
+                        ALL RIGHTS RESERVED.
+               UNAUTHORIZED USE IS A VIOLATION OF THIS LICENSE
+                    AND APPLICABLE INTELLECTUAL PROPERTY LAW.
+
+              © 2025 Assignmate. Proprietary and Confidential.
+
+================================================================================
