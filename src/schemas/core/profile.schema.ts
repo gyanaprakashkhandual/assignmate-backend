@@ -3,17 +3,18 @@ import { IProfileDocument, IHandwritingImage } from "../../types/core/profile.ty
 
 const HandwritingImageSchema = new Schema<IHandwritingImage>(
     {
-        url: {
-            type: String,
-            required: true,
-        },
-        publicId: {
-            type: String,
-            required: true,
-        },
-        uploadedAt: {
-            type: Date,
-            default: Date.now,
+        url: { type: String, required: true },
+        publicId: { type: String, required: true },
+        uploadedAt: { type: Date, default: Date.now },
+        extractedStyles: {
+            slant: { type: Number, default: 0.5 },
+            spacing: { type: Number, default: 1.0 },
+            strokeWeight: { type: Number, default: 0.6 },
+            lineIrregularity: { type: Number, default: 0.1 },
+            inkDensity: { type: Number, default: 0.85 },
+            fontFamily: String,
+            fontSize: Number,
+            extraData: { type: Schema.Types.Mixed, default: {} },
         },
     },
     { _id: false }

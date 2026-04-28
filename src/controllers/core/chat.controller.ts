@@ -76,8 +76,8 @@ export class ChatController {
                     lineIrregularity: characteristics.lineIrregularity ?? 0.1,
                     inkDensity: characteristics.inkDensity ?? 0.8,
                     fontFamily: characteristics.fontFamily,
-                    // Preserve the Calligraphr TTF font URL if already stored
-                    extraData: profile.handwritingImage.extraData ?? {},
+                    // ✅ FIXED: read from extractedStyles.extraData not handwritingImage.extraData
+                    extraData: profile.handwritingImage.extractedStyles?.extraData ?? {},
                 };
 
                 console_util.success(
@@ -98,7 +98,8 @@ export class ChatController {
                     strokeWeight: 0.6,
                     lineIrregularity: 0.1,
                     inkDensity: 0.85,
-                    extraData: profile.handwritingImage.extraData ?? {},
+                    // ✅ FIXED: read from extractedStyles.extraData not handwritingImage.extraData
+                    extraData: profile.handwritingImage.extractedStyles?.extraData ?? {},
                 };
             }
 
@@ -413,5 +414,4 @@ export class ChatController {
             res.status(200).json({ success: true, data: stats });
         }
     );
-    
 }

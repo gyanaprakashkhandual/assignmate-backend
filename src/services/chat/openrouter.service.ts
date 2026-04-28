@@ -126,6 +126,7 @@ Keep responses concise but complete.`;
 
     /*** Extract handwriting characteristics from image (via Claude Vision) */
     async extractHandwritingCharacteristics(imageUrl: string): Promise<{
+        [x: string]: string | number | undefined;
         slant: number;
         spacing: number;
         strokeWeight: number;

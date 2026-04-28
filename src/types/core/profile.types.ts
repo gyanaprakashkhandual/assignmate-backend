@@ -2,10 +2,23 @@ import { Document, Schema, Types } from "mongoose";
 
 export type UserDesignation = string;
 
+export interface IHandwritingExtractedStyles {
+    slant: number;
+    spacing: number;
+    strokeWeight: number;
+    lineIrregularity: number;
+    inkDensity: number;
+    fontFamily?: string;
+    fontSize?: number;
+    extraData?: Record<string, unknown>;
+}
+
 export interface IHandwritingImage {
     url: string;
     publicId: string;
     uploadedAt: Date;
+    extractedStyles?: IHandwritingExtractedStyles;
+    extraData?: Record<string, unknown>;
 }
 
 export interface IProfile {
@@ -25,12 +38,7 @@ export interface IProfileDocument extends Document {
     nickname?: string;
     designation?: string;
     age?: number;
-    handwritingImage?: {
-        extraData: {};
-        url: string;
-        publicId: string;
-        uploadedAt: Date;
-    };
+    handwritingImage?: IHandwritingImage;
     createdAt: Date;
     updatedAt: Date;
 }
