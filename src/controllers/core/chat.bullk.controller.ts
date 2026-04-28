@@ -212,68 +212,59 @@ export class ChatBulkController {
     );
 
     getUserPdfs = catchAsync(
-        async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
-            const userId = req.user?.id as string;
-            const page = Math.max(1, parseInt(req.query.page as string) || 1);
-            const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
-            const skip = (page - 1) * limit;
+    async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
+        const userId = req.user?.id as string;
+        const page = Math.max(1, parseInt(req.query.page as string) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+        const skip = (page - 1) * limit;
 
-            const fromDate = req.query.from ? new Date(req.query.from as string) : undefined;
-            const toDate = req.query.to ? new Date(req.query.to as string) : undefined;
-            const exportedBy = req.query.exportedBy as string | undefined;
-            const searchQuery = (req.query.q as string)?.trim();
-            const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+        const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+        const q = (req.query.q as string)?.trim();
 
-            const filter: Record<string, unknown> = { user: new Types.ObjectId(userId) };
+        const filter: Record<string, unknown> = {
+            user: new Types.ObjectId(userId),
+            pdfUrl: { $ne: null },
+        };
 
-            if (fromDate || toDate) {
-                const dateRange: Record<string, Date> = {};
-                if (fromDate) dateRange.$gte = fromDate;
-                if (toDate) dateRange.$lte = toDate;
-                filter.generatedAt = dateRange;
-            }
-            if (exportedBy && ["auto", "manual"].includes(exportedBy)) {
-                filter.exportedBy = exportedBy;
-            }
-
-            if (searchQuery) {
-                const matchingSessions = await this.ChatSessionModel.find({
-                    user: new Types.ObjectId(userId),
-                    title: { $regex: searchQuery, $options: "i" },
-                }).select("_id");
-                filter.chatSession = { $in: matchingSessions.map((s) => s._id) };
-            }
-
-            const [records, total] = await Promise.all([
-                this.PdfGenerationRecordModel.find(filter)
-                    .sort({ generatedAt: sortOrder })
-                    .skip(skip)
-                    .limit(limit)
-                    .populate("chatSession", "title status")
-                    .lean(),
-                this.PdfGenerationRecordModel.countDocuments(filter),
-            ]);
-
-            res.status(200).json({
-                success: true,
-                data: records.map((r) => ({
-                    id: r._id.toString(),
-                    pdfUrl: r.pdfUrl,
-                    pdfPublicId: r.pdfPublicId,
-                    fileSize: r.fileSize,
-                    messageCount: r.messageCount,
-                    exportedBy: r.exportedBy,
-                    generatedAt: r.generatedAt,
-                    chatSession: r.chatSession,
-                    metadata: r.metadata,
-                })),
-                pagination: {
-                    page,
-                    limit,
-                    total,
-                    totalPages: Math.ceil(total / limit),
-                },
-            });
+        if (q) {
+            filter.title = { $regex: q, $options: "i" };
         }
-    );
+
+        const [sessions, total] = await Promise.all([
+            this.ChatSessionModel.find(filter)
+                .sort({ pdfGeneratedAt: sortOrder })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            this.ChatSessionModel.countDocuments(filter),
+        ]);
+
+        const data = sessions.map((s) => ({
+            id: s._id.toString(),
+            pdfUrl: s.pdfUrl,
+            pdfPublicId: s.pdfPublicId,
+            fileSize: 0,
+            messageCount: (s.messages || []).length,
+            exportedBy: "manual",
+            generatedAt: s.pdfGeneratedAt ?? s.updatedAt,
+            chatSession: {
+                _id: s._id.toString(),
+                title: s.title,
+                status: s.status,
+            },
+            metadata: {},
+        }));
+
+        res.status(200).json({
+            success: true,
+            data,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        });
+    }
+);
 }
