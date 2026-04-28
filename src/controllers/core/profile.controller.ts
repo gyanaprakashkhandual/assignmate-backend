@@ -11,6 +11,7 @@ import { CreateProfileSchema, UpdateProfileSchema } from "../../validators/core/
 import { logger } from "../../utils/logger.util";
 import { console_util } from "../../utils/console.util";
 import { OAuthCallbackUser } from "../../types/core/user.types";
+import { sendWelcomeMail } from "../../services/notification/main.service";
 
 const uploadToCloudinary = (buffer: Buffer, folder: string): Promise<{ url: string; publicId: string }> => {
     return new Promise((resolve, reject) => {
@@ -72,6 +73,9 @@ export const createProfile = catchAsync(async (req: Request, res: Response) => {
         success: true,
         data: profile,
     });
+    if (currentUser.isNewUser) {
+        await sendWelcomeMail(currentUser);
+    }
 });
 
 export const updateProfile = catchAsync(async (req: Request, res: Response) => {
