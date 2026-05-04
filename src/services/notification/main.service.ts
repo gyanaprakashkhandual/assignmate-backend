@@ -8,7 +8,7 @@ export const sendWelcomeMail = async (user: OAuthCallbackUser): Promise<void> =>
         from: MAIL_CONFIG.from,
         replyTo: MAIL_CONFIG.replyTo,
         to: user.email,
-        subject: "Welcome to Assignmate 👋",
+        subject: "Welcome to Assignmate",
         html: welcomeTemplate(user.name, user.email),
     });
 
