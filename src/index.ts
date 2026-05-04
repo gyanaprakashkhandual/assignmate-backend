@@ -70,13 +70,11 @@ const startServer = async (): Promise<void> => {
 
         console_util.server("Server", `Attempting to bind server to 127.0.0.1:${PORT}`);
 
-        const server = app.listen(PORT, '127.0.0.1', () => {
+        const server = app.listen(PORT, () => {
             console_util.success("Server", "Server successfully started");
-            logger.info("Server", "Server started successfully", { port: PORT, host: "127.0.0.1" });
-            console_util.verbose("Server", `Local: http://127.0.0.1:${PORT}`);
-            console_util.verbose("Server", `Localhost: http://localhost:${PORT}`);
-            console_util.verbose("Server", `Health check: http://127.0.0.1:${PORT}/health`);
-            console_util.verbose("Server", `API base: http://127.0.0.1:${PORT}/api`);
+            logger.info("Server", "Server started successfully", { port: PORT });
+
+            console_util.verbose("Server", `Running on port ${PORT}`);
         });
 
         server.on('error', (error: any) => {
